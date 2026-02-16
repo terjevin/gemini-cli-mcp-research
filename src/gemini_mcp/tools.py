@@ -64,13 +64,17 @@ class GeminiTools:
                             "type": "string",
                             "description": "Additional context to prepend to the prompt",
                         },
+                        "system_instruction": {
+                            "type": "string",
+                            "description": "Custom system instruction to guide the model's behavior",
+                        },
                     },
                     "required": ["prompt"],
                 },
             ),
             Tool(
                 name="gemini_research",
-                description="Use Gemini to research a topic with optional file context",
+                description="Use Gemini to research a topic with optional file context and web search",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -87,6 +91,15 @@ class GeminiTools:
                             "type": "string",
                             "description": f"The model to use (default: {DEFAULT_GEMINI_MODEL})",
                             "default": DEFAULT_GEMINI_MODEL,
+                        },
+                        "system_instruction": {
+                            "type": "string",
+                            "description": "Custom system instruction to guide the model's behavior",
+                        },
+                        "enable_grounding": {
+                            "type": "boolean",
+                            "description": "Enable web search grounding for up-to-date information (default: true for research)",
+                            "default": True,
                         },
                     },
                     "required": ["topic"],
@@ -117,6 +130,10 @@ class GeminiTools:
                             "description": f"The model to use (default: {DEFAULT_GEMINI_MODEL})",
                             "default": DEFAULT_GEMINI_MODEL,
                         },
+                        "system_instruction": {
+                            "type": "string",
+                            "description": "Custom system instruction to guide the model's behavior",
+                        },
                     },
                     "required": ["files", "analysis_type"],
                 },
@@ -146,6 +163,10 @@ class GeminiTools:
                             "type": "string",
                             "description": f"The model to use (default: {DEFAULT_GEMINI_MODEL})",
                             "default": DEFAULT_GEMINI_MODEL,
+                        },
+                        "system_instruction": {
+                            "type": "string",
+                            "description": "Custom system instruction to guide the model's behavior",
                         },
                     },
                     "required": [],
@@ -203,6 +224,8 @@ class GeminiTools:
         model: str = DEFAULT_GEMINI_MODEL,
         files: list[str] | None = None,
         stdin_input: str | None = None,
+        system_instruction: str | None = None,
+        enable_grounding: bool = False,
     ) -> str:
         """Run a Gemini CLI command and return the output.
 
@@ -211,6 +234,8 @@ class GeminiTools:
             model: The model to use
             files: Optional list of file paths to include
             stdin_input: Optional input to send via stdin
+            system_instruction: Optional custom system instruction for the model
+            enable_grounding: Whether to enable web search grounding
 
         Returns:
             Command output as string
@@ -220,6 +245,14 @@ class GeminiTools:
             ValueError: If file paths are invalid
         """
         cmd = [self.gemini_path, "-m", model, "-p", prompt]
+        
+        # Add system instruction if provided
+        if system_instruction:
+            cmd.extend(["-s", system_instruction])
+        
+        # Add grounding flag if enabled
+        if enable_grounding:
+            cmd.append("-g")
 
         temp_file_list = None
         try:
@@ -294,16 +327,23 @@ class GeminiTools:
         prompt = arguments["prompt"]
         model = arguments.get("model", DEFAULT_GEMINI_MODEL)
         context = arguments.get("context", "")
+        system_instruction = arguments.get("system_instruction")
 
         full_prompt = f"{context}\n\n{prompt}" if context else prompt
 
-        return await self._run_gemini_command(prompt=full_prompt, model=model)
+        return await self._run_gemini_command(
+            prompt=full_prompt,
+            model=model,
+            system_instruction=system_instruction,
+        )
 
     async def _gemini_research(self, arguments: dict[str, Any]) -> str:
         """Research a topic using Gemini."""
         topic = arguments["topic"]
         files = arguments.get("files", [])
         model = arguments.get("model", DEFAULT_GEMINI_MODEL)
+        system_instruction = arguments.get("system_instruction")
+        enable_grounding = arguments.get("enable_grounding", True)  # Default to True for research
 
         research_prompt = f"""Please research the following topic and provide a comprehensive analysis:
 
@@ -321,6 +361,8 @@ Be thorough but concise."""
             prompt=research_prompt,
             model=model,
             files=files,
+            system_instruction=system_instruction,
+            enable_grounding=enable_grounding,
         )
 
     async def _gemini_analyze_code(self, arguments: dict[str, Any]) -> str:
@@ -329,6 +371,7 @@ Be thorough but concise."""
         analysis_type = arguments["analysis_type"]
         specific_question = arguments.get("specific_question", "")
         model = arguments.get("model", DEFAULT_GEMINI_MODEL)
+        system_instruction = arguments.get("system_instruction")
 
         analysis_prompts = {
             "review": "Please review this code and identify potential issues, bugs, or areas for improvement.",
@@ -349,6 +392,7 @@ Be thorough but concise."""
             prompt=prompt,
             model=model,
             files=files,
+            system_instruction=system_instruction,
         )
 
     async def _gemini_summarize(self, arguments: dict[str, Any]) -> str:
@@ -357,6 +401,7 @@ Be thorough but concise."""
         files = arguments.get("files", [])
         summary_type = arguments.get("summary_type", "brief")
         model = arguments.get("model", DEFAULT_GEMINI_MODEL)
+        system_instruction = arguments.get("system_instruction")
 
         if not content and not files:
             return "Error: Either content or files must be provided for summarization."
@@ -372,10 +417,15 @@ Be thorough but concise."""
 
         if content:
             full_prompt = f"{prompt}\n\nContent:\n{content}"
-            return await self._run_gemini_command(prompt=full_prompt, model=model)
+            return await self._run_gemini_command(
+                prompt=full_prompt,
+                model=model,
+                system_instruction=system_instruction,
+            )
         else:
             return await self._run_gemini_command(
                 prompt=prompt,
                 model=model,
                 files=files,
+                system_instruction=system_instruction,
             )

@@ -208,3 +208,64 @@ class TestGeminiTools:
         # Verify temp files were cleaned up
         for temp_file in temp_files_created:
             assert not os.path.exists(temp_file)
+
+    @pytest.mark.asyncio
+    async def test_system_instruction_parameter(self, mock_gemini_cli, mock_subprocess):
+        """Test that system instruction parameter is passed correctly."""
+        mock_create, mock_process = mock_subprocess
+        tools = GeminiTools()
+
+        await tools._gemini_prompt(
+            {"prompt": "Explain Python", "system_instruction": "You are a programming expert"}
+        )
+
+        # Verify that -s flag is included with system instruction
+        call_args = mock_create.call_args[0]
+        assert "-s" in call_args
+        s_index = call_args.index("-s")
+        assert call_args[s_index + 1] == "You are a programming expert"
+
+    @pytest.mark.asyncio
+    async def test_grounding_parameter(self, mock_gemini_cli, mock_subprocess):
+        """Test that grounding parameter is passed correctly for research."""
+        mock_create, mock_process = mock_subprocess
+        tools = GeminiTools()
+
+        # Test with grounding enabled (default for research)
+        await tools._gemini_research({"topic": "Latest AI trends"})
+
+        call_args = mock_create.call_args[0]
+        assert "-g" in call_args
+
+    @pytest.mark.asyncio
+    async def test_grounding_disabled(self, mock_gemini_cli, mock_subprocess):
+        """Test that grounding can be disabled."""
+        mock_create, mock_process = mock_subprocess
+        tools = GeminiTools()
+
+        # Test with grounding explicitly disabled
+        await tools._gemini_research({"topic": "Python basics", "enable_grounding": False})
+
+        call_args = mock_create.call_args[0]
+        assert "-g" not in call_args
+
+    @pytest.mark.asyncio
+    async def test_all_tools_support_system_instruction(self, mock_gemini_cli):
+        """Test that all tools have system_instruction in their schema."""
+        tools = GeminiTools()
+        definitions = tools.get_tool_definitions()
+
+        for tool in definitions:
+            assert "system_instruction" in tool.inputSchema["properties"], (
+                f"Tool {tool.name} should support system_instruction"
+            )
+
+    @pytest.mark.asyncio
+    async def test_research_tool_grounding_default(self, mock_gemini_cli):
+        """Test that research tool has grounding in its schema."""
+        tools = GeminiTools()
+        definitions = tools.get_tool_definitions()
+
+        research_tool = next(t for t in definitions if t.name == "gemini_research")
+        assert "enable_grounding" in research_tool.inputSchema["properties"]
+        assert research_tool.inputSchema["properties"]["enable_grounding"]["default"] is True
