@@ -15,9 +15,15 @@ A Model Context Protocol (MCP) server that wraps the Gemini CLI, allowing AI ass
 ## Features
 
 - **gemini_prompt**: Send prompts to Gemini and get responses
-- **gemini_research**: Research topics with optional file context
+- **gemini_research**: Research topics with optional file context and **web search grounding enabled by default**
 - **gemini_analyze_code**: Analyze code files for reviews, explanations, optimizations, security, or testing
 - **gemini_summarize**: Summarize content from text or files
+
+### Advanced Features
+
+- **Custom System Instructions**: All tools support custom system instructions to guide the model's behavior and response style
+- **Web Search Grounding**: The research tool includes web search grounding by default to provide up-to-date information from the internet
+- **Flexible Configuration**: System instructions and grounding can be controlled per-request to match your specific needs
 
 ## Installation
 
@@ -155,14 +161,19 @@ Send a simple prompt to Gemini.
 - `prompt` (required): The prompt to send
 - `model` (optional): The Gemini model to use (default: gemini-2.5-pro)
 - `context` (optional): Additional context to prepend to the prompt
+- `system_instruction` (optional): Custom system instruction to guide the model's behavior
 
 ### gemini_research
-Research a topic with optional file context.
+Research a topic with optional file context and web search.
 
 **Parameters:**
 - `topic` (required): The research topic or question
 - `files` (optional): List of file paths to include as context
 - `model` (optional): The Gemini model to use
+- `system_instruction` (optional): Custom system instruction to guide the model's behavior
+- `enable_grounding` (optional): Enable web search grounding for up-to-date information (default: true)
+
+**Note:** The research tool has web search grounding enabled by default to provide current information.
 
 ### gemini_analyze_code
 Analyze code files for various purposes.
@@ -177,6 +188,7 @@ Analyze code files for various purposes.
   - `test`: Test case suggestions
 - `specific_question` (optional): Additional specific question
 - `model` (optional): The Gemini model to use
+- `system_instruction` (optional): Custom system instruction to guide the model's behavior
 
 ### gemini_summarize
 Summarize content from text or files.
@@ -190,8 +202,15 @@ Summarize content from text or files.
   - `bullet_points`: Bullet point format
   - `executive`: Executive summary for decision makers
 - `model` (optional): The Gemini model to use
+- `system_instruction` (optional): Custom system instruction to guide the model's behavior
 
 Note: Either `content` or `files` must be provided.
+
+## Examples
+
+Check out the examples directory for more:
+- `examples/example_usage.py` - Basic usage examples
+- `examples/example_advanced_features.py` - Advanced features including system instructions and web search grounding
 
 ## Security
 
