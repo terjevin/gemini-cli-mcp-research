@@ -245,11 +245,11 @@ class GeminiTools:
             ValueError: If file paths are invalid
         """
         cmd = [self.gemini_path, "-m", model, "-p", prompt]
-        
+
         # Add system instruction if provided
         if system_instruction:
             cmd.extend(["-s", system_instruction])
-        
+
         # Add grounding flag if enabled
         if enable_grounding:
             cmd.append("-g")
