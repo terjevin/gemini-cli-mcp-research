@@ -206,6 +206,12 @@ Summarize content from text or files.
 
 Note: Either `content` or `files` must be provided.
 
+## Examples
+
+Check out the examples directory for more:
+- `examples/example_usage.py` - Basic usage examples
+- `examples/example_advanced_features.py` - Advanced features including system instructions and web search grounding
+
 ## Security
 
 This MCP server implements several security measures:
